@@ -3,8 +3,11 @@ package io.sc3.library.recipe
 import net.minecraft.data.server.recipe.ComplexRecipeJsonBuilder
 import net.minecraft.data.server.recipe.CraftingRecipeJsonBuilder
 import net.minecraft.data.server.recipe.RecipeJsonProvider
+import net.minecraft.item.DyeItem
+import net.minecraft.item.ItemStack
 import net.minecraft.recipe.*
 import net.minecraft.registry.Registries
+import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import java.util.function.Consumer
 
@@ -34,3 +37,6 @@ fun CraftingRecipeJsonBuilder.offerTo(
     })
   }, id ?: CraftingRecipeJsonBuilder.getItemId(outputItem))
 }
+
+fun itemDyeColor(item: ItemStack): DyeColor? =
+  (item.item as? DyeItem)?.color
