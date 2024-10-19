@@ -15,17 +15,17 @@ val unitBox = Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
 
 val Box.volume: Int
   get() {
-    val sx = xLength.toInt()
-    val sy = yLength.toInt()
-    val sz = zLength.toInt()
+    val sx = lengthX.toInt()
+    val sy = lengthY.toInt()
+    val sz = lengthZ.toInt()
     return sx * sy * sz
   }
 
 val Box.surfaceArea: Int
   get() {
-    val sx = xLength.toInt()
-    val sy = yLength.toInt()
-    val sz = zLength.toInt()
+    val sx = lengthX.toInt()
+    val sy = lengthY.toInt()
+    val sz = lengthZ.toInt()
     return sx * sy * 2 + sx * sz * 2 + sy * sz * 2
   }
 

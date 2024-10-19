@@ -1,11 +1,8 @@
 package io.sc3.library.recipe
 
-import com.google.gson.JsonObject
-import io.sc3.library.ScLibrary.ModId
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.recipe.Ingredient
-import net.minecraft.recipe.RecipeSerializer
 import net.minecraft.recipe.ShapedRecipe
 import net.minecraft.recipe.book.CraftingRecipeCategory
 import net.minecraft.util.collection.DefaultedList
@@ -36,11 +33,8 @@ class ShapedRecipeSpec private constructor(
   companion object {
     fun ofRecipe(recipe: ShapedRecipe) = ShapedRecipeSpec(
       recipe.group, recipe.category, recipe.width, recipe.height, recipe.ingredients,
-      recipe.getOutput(null) // TODO(1.19.4)
+      recipe.getResult(null)
     )
-
-    fun ofJson(json: JsonObject): ShapedRecipeSpec =
-      ofRecipe(RecipeSerializer.SHAPED.read(ModId("ignore"), json))
 
     fun ofPacket(buf: PacketByteBuf): ShapedRecipeSpec {
       val group = buf.readString()

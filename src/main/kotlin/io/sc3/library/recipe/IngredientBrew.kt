@@ -1,7 +1,7 @@
 package io.sc3.library.recipe
 
-import com.google.gson.JsonObject
-import com.google.gson.JsonSyntaxException
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.sc3.library.ScLibrary
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
@@ -13,7 +13,6 @@ import net.minecraft.potion.Potion
 import net.minecraft.potion.PotionUtil
 import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
-import net.minecraft.util.JsonHelper
 
 class IngredientBrew(
   private val effect: StatusEffect,
@@ -39,23 +38,17 @@ class IngredientBrew(
     private val ID = ScLibrary.ModId("brew")
 
     override fun getIdentifier(): Identifier = ID
-
-    override fun read(json: JsonObject): IngredientBrew {
-      val effectId = Identifier(JsonHelper.getString(json, "effect"))
-      val effect = Registries.STATUS_EFFECT.get(effectId) ?: throw JsonSyntaxException("Unknown effect $effectId")
-
-      val potionId = Identifier(JsonHelper.getString(json, "potion"))
-      val potion = when {
-        Registries.POTION.containsId(potionId) -> Registries.POTION.get(potionId)
-        else -> throw JsonSyntaxException("Unknown effect $potionId")
+    override fun getCodec(allowEmpty: Boolean): Codec<IngredientBrew> {
+      return RecordCodecBuilder.create {
+        instance -> instance.group(
+          Registries.STATUS_EFFECT.codec.fieldOf("effect").forGetter({
+              r -> r.effect
+          }),
+          Registries.POTION.codec.fieldOf("effect").forGetter({
+              r -> r.potion
+          })
+        ).apply(instance, ::IngredientBrew)
       }
-
-      return IngredientBrew(effect, potion)
-    }
-
-    override fun write(json: JsonObject, ingredient: IngredientBrew) {
-      json.addProperty("effect", Registries.STATUS_EFFECT.getId(ingredient.effect)!!.toString())
-      json.addProperty("potion", Registries.POTION.getId(ingredient.potion).toString())
     }
 
     override fun read(buf: PacketByteBuf): IngredientBrew {

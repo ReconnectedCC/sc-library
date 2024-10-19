@@ -1,16 +1,10 @@
 package io.sc3.library.recipe
 
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
-import com.mojang.brigadier.exceptions.CommandSyntaxException
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.StringNbtReader
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.recipe.Ingredient
-import net.minecraft.recipe.ShapedRecipe
 import net.minecraft.recipe.ShapelessRecipe
 import net.minecraft.recipe.book.CraftingRecipeCategory
-import net.minecraft.util.JsonHelper
 import net.minecraft.util.collection.DefaultedList
 
 /**
@@ -32,39 +26,10 @@ class ShapelessRecipeSpec private constructor(
   }
 
   companion object {
-    private val GSON = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
     fun ofRecipe(recipe: ShapelessRecipe) = ShapelessRecipeSpec(
-      recipe.group, recipe.category, recipe.getOutput(null) /* TODO(1.19.4) */, recipe.ingredients
+      recipe.group, recipe.category, recipe.getResult(null) /* TODO(1.19.4) */, recipe.ingredients
     )
-
-    fun ofJson(json: JsonObject): ShapelessRecipeSpec {
-      val group = JsonHelper.getString(json, "group", "") ?: ""
-      val category = CraftingRecipeCategory.CODEC.byId(
-        JsonHelper.getString(json, "category", null),
-        CraftingRecipeCategory.MISC
-      )
-
-      val inputs = DefaultedList.of<Ingredient>()
-      for (input in JsonHelper.getArray(json, "ingredients")) {
-        val ingredient = Ingredient.fromJson(input)
-        if (!ingredient.isEmpty) inputs.add(ingredient)
-      }
-
-      val outputObject = JsonHelper.getObject(json, "result")
-      val output = ShapedRecipe.outputFromJson(outputObject)
-
-      outputObject.get("nbt")?.let {
-        try {
-          val nbtJson = if (it.isJsonObject) GSON.toJson(it) else JsonHelper.asString(it, "nbt")
-          output.nbt = StringNbtReader.parse(nbtJson)
-        } catch (e: CommandSyntaxException) {
-          throw RuntimeException("Invalid NBT entry: ", e)
-        }
-      }
-
-      return ShapelessRecipeSpec(group, category, output, inputs)
-    }
 
     fun ofPacket(buf: PacketByteBuf): ShapelessRecipeSpec {
       val group = buf.readString()

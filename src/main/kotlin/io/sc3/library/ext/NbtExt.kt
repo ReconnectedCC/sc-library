@@ -1,7 +1,7 @@
 package io.sc3.library.ext
 
-import net.fabricmc.fabric.api.util.NbtType.*
 import net.minecraft.nbt.NbtCompound
+import net.minecraft.nbt.NbtElement
 import java.util.*
 
 fun NbtCompound.byteToDouble(key: String): Double = getByte(key).toDouble()
@@ -19,12 +19,12 @@ fun NbtCompound.putNullableUuid(key: String, value: UUID?) {
 }
 
 fun NbtCompound.optBoolean(key: String): Boolean? =
-  if (contains(key, BYTE)) getByte(key) != 0.toByte() else null
+  if (contains(key, NbtElement.BYTE_TYPE.toInt())) getByte(key) != 0.toByte() else null
 fun NbtCompound.optInt(key: String): Int? =
-  if (contains(key, INT)) getInt(key) else null
+  if (contains(key, NbtElement.INT_TYPE.toInt())) getInt(key) else null
 fun NbtCompound.optString(key: String): String? =
-  if (contains(key, STRING)) getString(key) else null
+  if (contains(key, NbtElement.STRING_TYPE.toInt())) getString(key) else null
 fun NbtCompound.optCompound(key: String): NbtCompound? =
-  if (contains(key, COMPOUND)) getCompound(key) else null
+  if (contains(key, NbtElement.COMPOUND_TYPE.toInt())) getCompound(key) else null
 fun NbtCompound.optUuid(key: String): UUID? =
   if (containsUuid(key)) getUuid(key) else null

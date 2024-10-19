@@ -1,7 +1,7 @@
 package io.sc3.library.recipe
 
-import com.google.gson.JsonObject
-import com.google.gson.JsonSyntaxException
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.sc3.library.ScLibrary
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
@@ -13,7 +13,6 @@ import net.minecraft.item.Items
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
-import net.minecraft.util.JsonHelper
 import java.util.*
 
 class IngredientEnchanted(
@@ -64,19 +63,19 @@ class IngredientEnchanted(
   object Serializer : CustomIngredientSerializer<IngredientEnchanted> {
     private val ID = ScLibrary.ModId("enchantment")
     override fun getIdentifier(): Identifier = ID
-
-    override fun read(json: JsonObject): IngredientEnchanted {
-      val enchantId = Identifier(JsonHelper.getString(json, "id"))
-      val enchant = Registries.ENCHANTMENT.get(enchantId) ?: throw JsonSyntaxException("Unknown enchantment $enchantId")
-
-      val minLevel = JsonHelper.getInt(json, "level")
-      return IngredientEnchanted(enchant, minLevel)
+    override fun getCodec(allowEmpty: Boolean): Codec<IngredientEnchanted> {
+      return RecordCodecBuilder.create {
+          instance -> instance.group(
+        Registries.ENCHANTMENT.codec.fieldOf("enchantment").forGetter({
+            r -> r.enchantment
+        }),
+        Codec.INT.fieldOf("minLevel").forGetter({
+          r -> r.minLevel
+        })
+      ).apply(instance, ::IngredientEnchanted)
+      }
     }
 
-    override fun write(json: JsonObject, ingredient: IngredientEnchanted) {
-      json.addProperty("id", Registries.ENCHANTMENT.getId(ingredient.enchantment)!!.toString())
-      json.addProperty("level", ingredient.minLevel)
-    }
 
     override fun read(buf: PacketByteBuf): IngredientEnchanted {
       val enchantment = buf.readRegistryValue(Registries.ENCHANTMENT)!!

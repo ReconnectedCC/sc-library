@@ -1,14 +1,11 @@
 package io.sc3.library.recipe
 
-import com.google.gson.JsonObject
-import net.minecraft.advancement.Advancement
-import net.minecraft.advancement.AdvancementRewards
-import net.minecraft.advancement.CriterionMerger
-import net.minecraft.advancement.criterion.CriterionConditions
+import net.minecraft.advancement.*
 import net.minecraft.advancement.criterion.RecipeUnlockedCriterion
-import net.minecraft.data.server.recipe.RecipeJsonProvider
+import net.minecraft.data.server.recipe.RecipeExporter
 import net.minecraft.item.ItemConvertible
 import net.minecraft.recipe.CraftingRecipe
+import net.minecraft.recipe.Recipe
 import net.minecraft.recipe.SpecialRecipeSerializer
 import net.minecraft.recipe.book.CraftingRecipeCategory.MISC
 import net.minecraft.registry.Registries
@@ -20,27 +17,24 @@ class BetterComplexRecipeJsonBuilder<T : CraftingRecipe>(
   private val specialSerializer: SpecialRecipeSerializer<T>
 ) {
   private val outputItem = output.asItem()
-  private val advancementBuilder: Advancement.Builder = Advancement.Builder.create()
+  private val complexAdvancementBuilder: Advancement.Builder = Advancement.Builder.create()
 
-  fun criterion(name: String, conditions: CriterionConditions) = apply {
-    advancementBuilder.criterion(name, conditions)
+  fun criterion(name: String, conditions: AdvancementCriterion<*>) = apply {
+    complexAdvancementBuilder.criterion(name, conditions)
   }
 
-  fun offerTo(exporter: Consumer<RecipeJsonProvider>, recipeId: Identifier = itemId(outputItem)) {
-    val advancementId = recipeId.withPrefixedPath("recipes/" + MISC.asString() + "/")
-    val advancement = advancementBuilder
-      .parent(Identifier("recipes/root")) // TODO: PR a name to yarn for field_39377
-      .criterion("has_the_recipe", RecipeUnlockedCriterion.create(recipeId))
-      .rewards(AdvancementRewards.Builder.recipe(recipeId))
-      .criteriaMerger(CriterionMerger.OR)
-      .toJson()
+  fun offerTo(exporter: Consumer<RecipeExporter>, recipeId: Identifier = itemId(outputItem)) {
+    exporter.accept(object : RecipeExporter {
+      override fun accept(recipeId: Identifier?, recipe: Recipe<*>?, advancement: AdvancementEntry?) {
+      }
 
-    exporter.accept(object : RecipeJsonProvider {
-      override fun serialize(json: JsonObject) {} // No-op
-      override fun getRecipeId() = recipeId
-      override fun getSerializer() = specialSerializer
-      override fun toAdvancementJson() = advancement
-      override fun getAdvancementId() = advancementId
+      override fun getAdvancementBuilder(): Advancement.Builder {
+        return complexAdvancementBuilder
+          /*TODO(please readd .parent(Identifier("recipe/root") w/o using Identifier)*/
+          .criterion("has_the_recipe", RecipeUnlockedCriterion.create(recipeId))
+          .rewards(AdvancementRewards.Builder.recipe(recipeId))
+          .criteriaMerger(AdvancementRequirements.CriterionMerger.OR)
+      }
     })
   }
 
