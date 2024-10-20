@@ -44,7 +44,7 @@ class IngredientBrew(
           Registries.STATUS_EFFECT.codec.fieldOf("effect").forGetter({
               r -> r.effect
           }),
-          Registries.POTION.codec.fieldOf("effect").forGetter({
+          Registries.POTION.codec.fieldOf("potion").forGetter({
               r -> r.potion
           })
         ).apply(instance, ::IngredientBrew)
