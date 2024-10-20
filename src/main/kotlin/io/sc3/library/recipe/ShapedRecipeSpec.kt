@@ -2,10 +2,9 @@ package io.sc3.library.recipe
 
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
-import net.minecraft.recipe.Ingredient
+import net.minecraft.recipe.RawShapedRecipe
 import net.minecraft.recipe.ShapedRecipe
 import net.minecraft.recipe.book.CraftingRecipeCategory
-import net.minecraft.util.collection.DefaultedList
 
 /**
  * The underlying structure of a [ShapedRecipe]-esque recipe, useful for writing serialisation and deserialization
@@ -14,40 +13,31 @@ import net.minecraft.util.collection.DefaultedList
 class ShapedRecipeSpec private constructor(
   val group: String,
   val category: CraftingRecipeCategory,
-  val width: Int,
-  val height: Int,
-  val ingredients: DefaultedList<Ingredient>,
+  val rawShapedRecipe: RawShapedRecipe,
   val output: ItemStack,
 ) {
   fun write(buf: PacketByteBuf) {
     buf.writeString(group)
     buf.writeEnumConstant(category)
 
-    buf.writeVarInt(width)
-    buf.writeVarInt(height)
-    for (ingredient in ingredients) ingredient.write(buf)
+    rawShapedRecipe.writeToBuf(buf)
 
     buf.writeItemStack(output)
   }
 
   companion object {
-    fun ofRecipe(recipe: ShapedRecipe) = ShapedRecipeSpec(
-      recipe.group, recipe.category, recipe.width, recipe.height, recipe.ingredients,
-      recipe.getResult(null)
+    fun ofRecipe(recipe: ExtendedShapedRecipe) = ShapedRecipeSpec(
+      recipe.group, recipe.category, recipe.rawShapedRecipe, recipe.getResult(null)
     )
 
     fun ofPacket(buf: PacketByteBuf): ShapedRecipeSpec {
       val group = buf.readString()
       val category = buf.readEnumConstant(CraftingRecipeCategory::class.java)
 
-      val width = buf.readVarInt()
-      val height = buf.readVarInt()
-      val ingredients = DefaultedList.ofSize(width * height, Ingredient.EMPTY)
-      for (i in ingredients.indices) ingredients[i] = Ingredient.fromPacket(buf)
-
+      val raw = RawShapedRecipe.readFromBuf(buf)
       val output = buf.readItemStack()
 
-      return ShapedRecipeSpec(group, category, width, height, ingredients, output)
+      return ShapedRecipeSpec(group, category, raw, output)
     }
   }
 }

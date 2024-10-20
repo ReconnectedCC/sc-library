@@ -5,5 +5,5 @@ import java.util.function.Consumer
 
 interface RecipeHandler {
   fun registerSerializers() {}
-  fun generateRecipes(exporter: Consumer<RecipeExporter>) {}
+  fun generateRecipes(exporter: RecipeExporter) {}
 }
