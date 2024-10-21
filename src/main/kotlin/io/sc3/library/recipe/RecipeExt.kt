@@ -11,6 +11,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.recipe.*
 import net.minecraft.registry.DynamicRegistryManager
 import net.minecraft.registry.Registries
+import net.minecraft.registry.RegistryWrapper
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import net.minecraft.world.World
@@ -31,16 +32,16 @@ private class CustomRecipeWrapper<T : Inventory>(val originalRecipe: Recipe<T>, 
     return originalRecipe.matches(inventory, world)
   }
 
-  override fun craft(inventory: T, registryManager: DynamicRegistryManager?): ItemStack {
-    return originalRecipe.craft(inventory, registryManager)
+  override fun craft(inventory: T, lookup: RegistryWrapper.WrapperLookup?): ItemStack? {
+    return originalRecipe.craft(inventory, lookup)
   }
 
   override fun fits(width: Int, height: Int): Boolean {
     return originalRecipe.fits(width, height)
   }
 
-  override fun getResult(registryManager: DynamicRegistryManager?): ItemStack {
-    return originalRecipe.getResult(registryManager)
+  override fun getResult(registriesLookup: RegistryWrapper.WrapperLookup?): ItemStack? {
+    return originalRecipe.getResult(registriesLookup)
   }
 
   override fun getSerializer(): RecipeSerializer<*> {

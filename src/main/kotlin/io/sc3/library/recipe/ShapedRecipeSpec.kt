@@ -1,5 +1,7 @@
 package io.sc3.library.recipe
 
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.recipe.RawShapedRecipe
@@ -16,28 +18,20 @@ class ShapedRecipeSpec private constructor(
   val rawShapedRecipe: RawShapedRecipe,
   val output: ItemStack,
 ) {
-  fun write(buf: PacketByteBuf) {
-    buf.writeString(group)
-    buf.writeEnumConstant(category)
-
-    rawShapedRecipe.writeToBuf(buf)
-
-    buf.writeItemStack(output)
-  }
-
   companion object {
+    fun <T : ExtendedShapedRecipe> codec(constructor: (String, CraftingRecipeCategory, RawShapedRecipe, ItemStack) -> T): Codec<T> {
+      return RecordCodecBuilder.create { instance ->
+        instance.group(
+          Codec.STRING.fieldOf("group").forGetter { r -> r.group },
+          CraftingRecipeCategory.CODEC.fieldOf("category").forGetter { r -> r.category },
+          RawShapedRecipe.CODEC.fieldOf("recipe").forGetter { r -> r.rawShapedRecipe },
+          ItemStack.CODEC.fieldOf("output").forGetter { z -> z.getResult(null) }
+        ).apply(instance, constructor) // Pass the constructor directly
+      }
+    }
+
     fun ofRecipe(recipe: ExtendedShapedRecipe) = ShapedRecipeSpec(
       recipe.group, recipe.category, recipe.rawShapedRecipe, recipe.getResult(null)
     )
-
-    fun ofPacket(buf: PacketByteBuf): ShapedRecipeSpec {
-      val group = buf.readString()
-      val category = buf.readEnumConstant(CraftingRecipeCategory::class.java)
-
-      val raw = RawShapedRecipe.readFromBuf(buf)
-      val output = buf.readItemStack()
-
-      return ShapedRecipeSpec(group, category, raw, output)
-    }
   }
 }

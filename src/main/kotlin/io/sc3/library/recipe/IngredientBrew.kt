@@ -1,16 +1,18 @@
 package io.sc3.library.recipe
 
-import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.sc3.library.ScLibrary
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.effect.StatusEffect
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.network.RegistryByteBuf
+import net.minecraft.network.codec.PacketCodec
 import net.minecraft.potion.Potion
-import net.minecraft.potion.PotionUtil
 import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
 
@@ -19,16 +21,25 @@ class IngredientBrew(
   private val potion: Potion
 ) : CustomIngredient {
   override fun getMatchingStacks() = listOf(
-    PotionUtil.setPotion(ItemStack(Items.POTION), potion),
-    PotionUtil.setPotion(ItemStack(Items.SPLASH_POTION), potion),
-    PotionUtil.setPotion(ItemStack(Items.LINGERING_POTION), potion)
+    setPotion(ItemStack(Items.POTION), potion),
+    setPotion(ItemStack(Items.SPLASH_POTION), potion),
+    setPotion(ItemStack(Items.LINGERING_POTION), potion)
   )
+
+  private fun setPotion(itemStack: ItemStack, potion: Potion): ItemStack {
+    val components = itemStack.components;
+    val potionContents = components.get(DataComponentTypes.POTION_CONTENTS)!!
+    potionContents.customEffects.addAll(potion.effects)
+    return itemStack
+  }
 
   override fun requiresTesting(): Boolean = true
 
   override fun test(target: ItemStack): Boolean {
     if (target.isEmpty) return false
-    return PotionUtil.getPotionEffects(target)
+    val components = target.components.get(DataComponentTypes.POTION_CONTENTS) ?: return false;
+
+    return components.effects
       .any { it.effectType === effect }
   }
 
@@ -38,8 +49,8 @@ class IngredientBrew(
     private val ID = ScLibrary.ModId("brew")
 
     override fun getIdentifier(): Identifier = ID
-    override fun getCodec(allowEmpty: Boolean): Codec<IngredientBrew> {
-      return RecordCodecBuilder.create {
+    override fun getCodec(allowEmpty: Boolean): MapCodec<IngredientBrew>? {
+      return RecordCodecBuilder.mapCodec {
         instance -> instance.group(
           Registries.STATUS_EFFECT.codec.fieldOf("effect").forGetter({
               r -> r.effect
@@ -51,15 +62,19 @@ class IngredientBrew(
       }
     }
 
-    override fun read(buf: PacketByteBuf): IngredientBrew {
-      val effect = buf.readRegistryValue(Registries.STATUS_EFFECT)!!
-      val potion = buf.readRegistryValue(Registries.POTION)!!
+    override fun getPacketCodec(): PacketCodec<RegistryByteBuf, IngredientBrew> {
+      return PacketCodec.of(Serializer::write, Serializer::read)
+    }
+
+    fun read(buf: PacketByteBuf): IngredientBrew {
+      val effect = Registries.STATUS_EFFECT.get(buf.readVarInt())!!
+      val potion = Registries.POTION.get(buf.readVarInt())!!
       return IngredientBrew(effect, potion)
     }
 
-    override fun write(buf: PacketByteBuf, ingredient: IngredientBrew) {
-      buf.writeRegistryValue(Registries.STATUS_EFFECT, ingredient.effect)
-      buf.writeRegistryValue(Registries.POTION, ingredient.potion)
+    fun write(ingredient: IngredientBrew, buf: PacketByteBuf) {
+      buf.writeVarInt(Registries.STATUS_EFFECT.getRawId(ingredient.effect))
+      buf.writeVarInt(Registries.POTION.getRawId(ingredient.potion))
     }
   }
 }
