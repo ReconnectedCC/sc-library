@@ -3,6 +3,10 @@ package io.sc3.library.recipe
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.item.ItemStack
+import net.minecraft.network.PacketByteBuf
+import net.minecraft.network.RegistryByteBuf
+import net.minecraft.network.codec.PacketCodec
+import net.minecraft.network.codec.PacketCodecs
 import net.minecraft.recipe.Ingredient
 import net.minecraft.recipe.ShapelessRecipe
 import net.minecraft.recipe.book.CraftingRecipeCategory
@@ -33,6 +37,18 @@ class ShapelessRecipeSpec private constructor(
             .fieldOf("ingredient").forGetter { r -> r.ingredients }
         ).apply(instance, constructor)
       }
+    }
+
+    fun <T : ShapelessRecipe> packetCodec(
+      constructor: (String, CraftingRecipeCategory, ItemStack, MutableList<Ingredient>) -> T,
+    ): PacketCodec<RegistryByteBuf, T> {
+      return PacketCodec.tuple(
+        PacketCodecs.STRING, ShapelessRecipe::getGroup,
+        CraftingRecipeCategory.PACKET_CODEC, ShapelessRecipe::getCategory,
+        ItemStack.PACKET_CODEC, { a -> a.getResult(null) },
+        Ingredient.PACKET_CODEC.collect(PacketCodecs.toList()), ShapelessRecipe::getIngredients,
+        constructor
+      )
     }
   }
 }
