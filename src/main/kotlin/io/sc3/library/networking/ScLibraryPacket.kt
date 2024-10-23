@@ -46,7 +46,7 @@ fun <T: ScLibraryPacket> registerServerReceiver(id: CustomPayload.Id<CustomPaylo
 }
 
 abstract class ScLibraryPacket {
-  abstract val id: Identifier
+  abstract val id: CustomPayload.Id<CustomPayload>
 
   abstract val payload: CustomPayload;
   

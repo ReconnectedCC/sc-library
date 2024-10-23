@@ -1,6 +1,7 @@
 package io.sc3.library.recipe
 
 import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
@@ -19,8 +20,8 @@ class ShapedRecipeSpec private constructor(
   val output: ItemStack,
 ) {
   companion object {
-    fun <T : ExtendedShapedRecipe> codec(constructor: (String, CraftingRecipeCategory, RawShapedRecipe, ItemStack) -> T): Codec<T> {
-      return RecordCodecBuilder.create { instance ->
+    fun <T : ExtendedShapedRecipe> codec(constructor: (String, CraftingRecipeCategory, RawShapedRecipe, ItemStack) -> T): MapCodec<T> {
+      return RecordCodecBuilder.mapCodec { instance ->
         instance.group(
           Codec.STRING.fieldOf("group").forGetter { r -> r.group },
           CraftingRecipeCategory.CODEC.fieldOf("category").forGetter { r -> r.category },
