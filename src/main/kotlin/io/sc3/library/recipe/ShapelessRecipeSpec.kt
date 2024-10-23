@@ -40,13 +40,18 @@ class ShapelessRecipeSpec private constructor(
     }
 
     fun <T : ShapelessRecipe> packetCodec(
-      constructor: (String, CraftingRecipeCategory, ItemStack, MutableList<Ingredient>) -> T,
+      constructor: (String, CraftingRecipeCategory, ItemStack, DefaultedList<Ingredient>) -> T,
     ): PacketCodec<RegistryByteBuf, T> {
       return PacketCodec.tuple(
         PacketCodecs.STRING, ShapelessRecipe::getGroup,
         CraftingRecipeCategory.PACKET_CODEC, ShapelessRecipe::getCategory,
         ItemStack.PACKET_CODEC, { a -> a.getResult(null) },
-        Ingredient.PACKET_CODEC.collect(PacketCodecs.toList()), ShapelessRecipe::getIngredients,
+        Ingredient.PACKET_CODEC.collect(PacketCodecs.toList()) // this gives us a codec for List<Ingredient> and we want DefaultedList<Ingredient>
+          .xmap(
+            { m -> DefaultedList.copyOf(Ingredient.EMPTY, *m.toTypedArray()) /* make a defaulted list */ },
+            { m -> m /* defaulted list to ? defaulted list. bruh*/}
+          ),
+        ShapelessRecipe::getIngredients,
         constructor
       )
     }
