@@ -1,6 +1,7 @@
 package io.sc3.library.recipe
 
 import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
@@ -26,8 +27,8 @@ class ShapelessRecipeSpec private constructor(
   companion object {
     fun <T : ShapelessRecipe> codec(
       constructor: (String, CraftingRecipeCategory, ItemStack, DefaultedList<Ingredient>) -> T
-    ): Codec<T> {
-      return RecordCodecBuilder.create { instance ->
+    ): MapCodec<T> {
+      return RecordCodecBuilder.mapCodec { instance ->
         instance.group(
           Codec.STRING.fieldOf("group").forGetter { r -> r.group },
           CraftingRecipeCategory.CODEC.fieldOf("category").forGetter { r -> r.category },
@@ -49,7 +50,7 @@ class ShapelessRecipeSpec private constructor(
         Ingredient.PACKET_CODEC.collect(PacketCodecs.toList()) // this gives us a codec for List<Ingredient> and we want DefaultedList<Ingredient>
           .xmap(
             { m -> DefaultedList.copyOf(Ingredient.EMPTY, *m.toTypedArray()) /* make a defaulted list */ },
-            { m -> m /* defaulted list to ? defaulted list. bruh*/}
+            Function.identity()
           ),
         ShapelessRecipe::getIngredients,
         constructor
