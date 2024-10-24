@@ -6,6 +6,7 @@ import io.sc3.library.ScLibrary
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
 import net.minecraft.component.DataComponentTypes
+import net.minecraft.component.type.PotionContentsComponent
 import net.minecraft.entity.effect.StatusEffect
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -14,11 +15,12 @@ import net.minecraft.network.RegistryByteBuf
 import net.minecraft.network.codec.PacketCodec
 import net.minecraft.potion.Potion
 import net.minecraft.registry.Registries
+import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
 
 class IngredientBrew(
   private val effect: StatusEffect,
-  private val potion: Potion
+  private val potion: RegistryEntry<Potion>
 ) : CustomIngredient {
   override fun getMatchingStacks() = listOf(
     setPotion(ItemStack(Items.POTION), potion),
@@ -26,11 +28,11 @@ class IngredientBrew(
     setPotion(ItemStack(Items.LINGERING_POTION), potion)
   )
 
-  private fun setPotion(itemStack: ItemStack, potion: Potion): ItemStack {
-    val components = itemStack.components;
-    val potionContents = components.get(DataComponentTypes.POTION_CONTENTS)!!
-    potionContents.customEffects.addAll(potion.effects)
-    return itemStack
+  private fun setPotion(stack: ItemStack, oldPotion: RegistryEntry<Potion>): ItemStack {
+    stack.set(DataComponentTypes.POTION_CONTENTS,
+      PotionContentsComponent(oldPotion)
+    )
+    return stack
   }
 
   override fun requiresTesting(): Boolean = true
@@ -40,7 +42,7 @@ class IngredientBrew(
     val components = target.components.get(DataComponentTypes.POTION_CONTENTS) ?: return false;
 
     return components.effects
-      .any { it.effectType === effect }
+      .any { it.effectType.value() === effect }
   }
 
   override fun getSerializer(): CustomIngredientSerializer<*> = Serializer
@@ -55,9 +57,11 @@ class IngredientBrew(
           Registries.STATUS_EFFECT.codec.fieldOf("effect").forGetter({
               r -> r.effect
           }),
-          Registries.POTION.codec.fieldOf("potion").forGetter({
-              r -> r.potion
-          })
+          Registries.POTION.codec.fieldOf("potion")
+            .xmap(
+              { z -> Registries.POTION.getEntry(z)},
+              { z -> z.value() }
+            ).forGetter { z -> z.potion }
         ).apply(instance, ::IngredientBrew)
       }
     }
@@ -69,12 +73,12 @@ class IngredientBrew(
     fun read(buf: PacketByteBuf): IngredientBrew {
       val effect = Registries.STATUS_EFFECT.get(buf.readVarInt())!!
       val potion = Registries.POTION.get(buf.readVarInt())!!
-      return IngredientBrew(effect, potion)
+      return IngredientBrew(effect, Registries.POTION.getEntry(potion))
     }
 
     fun write(ingredient: IngredientBrew, buf: PacketByteBuf) {
       buf.writeVarInt(Registries.STATUS_EFFECT.getRawId(ingredient.effect))
-      buf.writeVarInt(Registries.POTION.getRawId(ingredient.potion))
+      buf.writeVarInt(Registries.POTION.getRawId(ingredient.potion.value()))
     }
   }
 }
