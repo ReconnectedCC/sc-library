@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.sc3.library.ScLibrary
+import io.sc3.library.ext.EnchantmentExt
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
 import net.minecraft.component.DataComponentTypes
@@ -13,18 +14,20 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.item.EnchantedBookItem
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.network.RegistryByteBuf
 import net.minecraft.network.codec.PacketCodec
-import net.minecraft.network.codec.PacketCodecs
 import net.minecraft.registry.Registries
+import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Identifier
-import java.util.*
 
-class IngredientEnchanted(
-  private val enchantment: Enchantment,
+open class IngredientEnchanted(
+  private val enchantmentKey: RegistryKey<Enchantment>,
   private val minLevel: Int,
 ) : CustomIngredient {
+  private val enchantmentEntry = EnchantmentExt.getEnchantment(enchantmentKey);
+  private val enchantment = enchantmentEntry.value()
+
   override fun getMatchingStacks(): List<ItemStack> {
     val stacks = mutableListOf<ItemStack>()
 
@@ -34,7 +37,7 @@ class IngredientEnchanted(
         for (level in minLevel..enchantment.maxLevel) {
           val stack = ItemStack(item)
           val map = ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-          map.set(enchantment, level);
+          map.set(enchantmentEntry, level);
           EnchantmentHelper.set(stack, map.build());
           stacks.add(stack)
         }
@@ -58,9 +61,8 @@ class IngredientEnchanted(
     if(enchantmentsComponent == null) return false;
 
     for(i in  enchantmentsComponent.enchantments) {
-      val itemEnchant = Registries.ENCHANTMENT.get(Identifier(i.idAsString));
-      if(itemEnchant == this.enchantment) {
-        return enchantmentsComponent.getLevel(itemEnchant) >= minLevel
+      if(i.value() == this.enchantment) {
+        return enchantmentsComponent.getLevel(i) >= minLevel
       }
     }
     return false;
@@ -74,12 +76,12 @@ class IngredientEnchanted(
     override fun getCodec(allowEmpty: Boolean): MapCodec<IngredientEnchanted> {
       return RecordCodecBuilder.mapCodec {
           instance -> instance.group(
-        Registries.ENCHANTMENT.codec.fieldOf("enchantment").forGetter({
-            r -> r.enchantment
-        }),
-        Codec.INT.fieldOf("minLevel").forGetter({
-          r -> r.minLevel
-        })
+        EnchantmentExt.enchantmentKeysCodec.fieldOf("enchantment").forGetter {
+          z -> z.enchantmentKey
+        },
+        Codec.INT.fieldOf("minLevel").forGetter { r ->
+          r.minLevel
+        }
       ).apply(instance, ::IngredientEnchanted)
       }
     }
@@ -89,13 +91,14 @@ class IngredientEnchanted(
     }
 
     fun read(buf: RegistryByteBuf): IngredientEnchanted {
-      val enchantment = Registries.ENCHANTMENT.get(buf.readVarInt())!!
+      val enchantment = RegistryKey.of(RegistryKeys.ENCHANTMENT, buf.readIdentifier())
+
       val minLevel = buf.readVarInt()
       return IngredientEnchanted(enchantment, minLevel)
     }
 
     fun write(ingredient: IngredientEnchanted, buf: RegistryByteBuf) {
-      buf.writeVarInt(Registries.ENCHANTMENT.getRawId(ingredient.enchantment))
+      buf.writeIdentifier(ingredient.enchantmentKey.value)
       buf.writeVarInt(ingredient.minLevel)
     }
   }

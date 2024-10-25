@@ -11,7 +11,7 @@ object ScLibrary : ModInitializer {
   val log = LoggerFactory.getLogger("ScLibrary")!!
 
   val modId = "sc-library"
-  fun ModId(value: String) = Identifier(modId, value)
+  fun ModId(value: String) = Identifier.of(modId, value)
 
   override fun onInitialize() {
     CustomIngredientSerializer.register(IngredientBrew.Serializer)

@@ -30,7 +30,7 @@ class BetterComplexRecipeJsonBuilder<T : CraftingRecipe>(
   fun offerTo(exporter: RecipeExporter, recipeId: Identifier = itemId(outputItem)) {
     val advancementId = recipeId.withPrefixedPath("recipes/" + MISC.asString() + "/")
     val advancement = complexAdvancementBuilder
-      .parent(Identifier("recipes/root")) /* TODO(.parent(Identifier) is marked for removal) */
+      .parent(Identifier.of("recipes/root")) /* TODO(.parent(Identifier) is marked for removal) */
       .criterion("has_the_recipe", RecipeUnlockedCriterion.create(recipeId))
       .rewards(AdvancementRewards.Builder.recipe(recipeId))
       .criteriaMerger(AdvancementRequirements.CriterionMerger.OR)

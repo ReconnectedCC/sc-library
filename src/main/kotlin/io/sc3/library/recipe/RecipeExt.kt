@@ -9,6 +9,7 @@ import net.minecraft.inventory.Inventory
 import net.minecraft.item.DyeItem
 import net.minecraft.item.ItemStack
 import net.minecraft.recipe.*
+import net.minecraft.recipe.input.RecipeInput
 import net.minecraft.registry.DynamicRegistryManager
 import net.minecraft.registry.Registries
 import net.minecraft.registry.RegistryWrapper
@@ -26,7 +27,7 @@ fun <T : CraftingRecipe> specialRecipe(
   return recipeId
 }
 
-private class CustomRecipeWrapper<T : Inventory>(val originalRecipe: Recipe<T>, val customSerializer: RecipeSerializer<*>) :
+private class CustomRecipeWrapper<T : RecipeInput>(val originalRecipe: Recipe<T>, val customSerializer: RecipeSerializer<*>) :
   Recipe<T> {
   override fun matches(inventory: T, world: World?): Boolean {
     return originalRecipe.matches(inventory, world)
