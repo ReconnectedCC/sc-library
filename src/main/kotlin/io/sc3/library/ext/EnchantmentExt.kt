@@ -1,34 +1,45 @@
 package io.sc3.library.ext
 
+import com.mojang.serialization.Codec
+import io.netty.buffer.ByteBuf
 import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.registry.BuiltinRegistries
-import net.minecraft.registry.RegistryKey
-import net.minecraft.registry.RegistryKeys
+import net.minecraft.network.codec.PacketCodec
+import net.minecraft.registry.*
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
-import net.minecraft.world.World
-import java.rmi.registry.Registry
-import java.util.*
+import java.util.HashMap
 
 
 class EnchantmentExt {
   companion object {
-    val enchantmentKeysCodec = RegistryKey.createCodec(RegistryKeys.ENCHANTMENT)
+    val enchantmentKeysCodec: Codec<RegistryKey<Enchantment>> = RegistryKey.createCodec(RegistryKeys.ENCHANTMENT)
+    val enchantmentKeysPacketCodec: PacketCodec<ByteBuf, RegistryKey<Enchantment>> = RegistryKey.createPacketCodec(RegistryKeys.ENCHANTMENT)
+    val enchantmentCache: HashMap<Identifier, RegistryEntry<Enchantment>> = HashMap();
 
     fun getEnchantment(key: RegistryKey<Enchantment>): RegistryEntry<Enchantment> {
-      return BuiltinRegistries.createWrapperLookup().createRegistryLookup().getOptionalEntry(
+      if(enchantmentCache.containsKey(key.value)) {
+        return enchantmentCache[key.value]!!
+      } else {
+        val entry = this.getEnchantment(BuiltinRegistries.createWrapperLookup(), key)
+        enchantmentCache[key.value] = entry
+        return entry
+      }
+    }
+
+    fun getEnchantment(rwwpl: RegistryWrapper.WrapperLookup, key: RegistryKey<Enchantment>): RegistryEntry<Enchantment> {
+      return rwwpl.createRegistryLookup().getOptionalEntry(
         RegistryKeys.ENCHANTMENT, key
       ).orElseThrow()
     }
-    fun getEnchantment(world: World, key: RegistryKey<Enchantment>): RegistryEntry<Enchantment> {
-      return world.registryManager.get(RegistryKeys.ENCHANTMENT).getEntry(key).orElseThrow()
+
+    fun getEnchantment(drm: DynamicRegistryManager, key: RegistryKey<Enchantment>): RegistryEntry<Enchantment> {
+      return drm.get(RegistryKeys.ENCHANTMENT).getEntry(key).orElseThrow()
     }
-    fun getEnchantment(world: World, key: Enchantment): RegistryEntry<Enchantment> {
-      return world.registryManager.get(RegistryKeys.ENCHANTMENT).getEntry(key);
+    fun getEnchantment(drm: DynamicRegistryManager, key: Enchantment): RegistryEntry<Enchantment> {
+      return drm.get(RegistryKeys.ENCHANTMENT).getEntry(key);
     }
-    fun getEnchantment(world: World, key: Identifier): RegistryEntry<Enchantment> {
-      return world.registryManager.get(RegistryKeys.ENCHANTMENT).getEntry(key).orElseThrow();
+    fun getEnchantment(drm: DynamicRegistryManager, key: Identifier): RegistryEntry<Enchantment> {
+      return drm.get(RegistryKeys.ENCHANTMENT).getEntry(key).orElseThrow();
     }
   }
 }
