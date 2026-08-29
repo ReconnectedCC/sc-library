@@ -1,6 +1,9 @@
 package io.sc3.library
 
+import io.sc3.library.recipe.IngredientBrew
+import io.sc3.library.recipe.IngredientEnchanted
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer
 import net.minecraft.util.Identifier
 import org.slf4j.LoggerFactory
 
@@ -11,5 +14,7 @@ object ScLibrary : ModInitializer {
   fun ModId(value: String) = Identifier.of(modId, value)
 
   override fun onInitialize() {
+    CustomIngredientSerializer.register(IngredientBrew.Serializer)
+    CustomIngredientSerializer.register(IngredientEnchanted.Serializer)
   }
 }
